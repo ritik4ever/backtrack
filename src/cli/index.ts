@@ -10,12 +10,11 @@
  */
 
 import * as path from 'path';
-import * as readline from 'readline';
 import { spawnSync } from 'child_process';
 import { findClaudeDir, listProjectDirs } from '../utils/claudeDir';
 import { listSessionFiles, parseSessionMeta } from '../utils/sessionParser';
 import { fastSearch } from '../utils/search';
-import { relativeTime, truncate, formatDate, formatBytes } from '../utils/formatters';
+import { relativeTime, truncate } from '../utils/formatters';
 import { SessionMeta } from '../types';
 
 // ── ANSI helpers ─────────────────────────────────────────────────────────────

@@ -1,3 +1,4 @@
+import * as fs from 'fs';
 import * as os from 'os';
 import * as path from 'path';
 import * as vscode from 'vscode';
@@ -138,7 +139,7 @@ export function activate(context: vscode.ExtensionContext): void {
       const meta = 'session' in item ? item.session : (item as SessionTreeItem).session;
       if (!meta) return;
 
-      const isWsl = process.platform === 'linux' && require('fs').existsSync('/mnt/c');
+      const isWsl = process.platform === 'linux' && fs.existsSync('/mnt/c');
       const cmd = isWsl
         ? `cmd.exe /c "claude --resume ${meta.id}"`
         : `claude --resume ${meta.id}`;
