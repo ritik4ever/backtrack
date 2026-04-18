@@ -1,0 +1,249 @@
+{
+  "name": "backtrack",
+  "displayName": "Backtrack",
+  "description": "Backtrack to any Claude Code conversation. Browse, search, and resume sessions across all projects.",
+  "version": "0.1.0",
+  "publisher": "ritik4ever",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/ritik4ever/backtrack"
+  },
+  "bugs": {
+    "url": "https://github.com/ritik4ever/backtrack/issues"
+  },
+  "homepage": "https://github.com/ritik4ever/backtrack#readme",
+  "engines": {
+    "vscode": "^1.80.0"
+  },
+  "categories": [
+    "Other",
+    "Machine Learning"
+  ],
+  "keywords": [
+    "claude",
+    "claude-code",
+    "session",
+    "history",
+    "ai",
+    "anthropic",
+    "conversation",
+    "resume"
+  ],
+  "activationEvents": [
+    "onView:backtrack.allSessions",
+    "onView:backtrack.bookmarks"
+  ],
+  "main": "./out/extension.js",
+  "icon": "media/icon.png",
+  "contributes": {
+    "viewsContainers": {
+      "activitybar": [
+        {
+          "id": "backtrack",
+          "title": "Backtrack",
+          "icon": "media/sidebar-icon.svg"
+        }
+      ]
+    },
+    "views": {
+      "backtrack": [
+        {
+          "id": "backtrack.allSessions",
+          "name": "All Sessions",
+          "icon": "media/sidebar-icon.svg"
+        },
+        {
+          "id": "backtrack.bookmarks",
+          "name": "Bookmarked",
+          "icon": "$(bookmark)"
+        }
+      ]
+    },
+    "commands": [
+      {
+        "command": "backtrack.refresh",
+        "title": "Refresh",
+        "category": "Backtrack",
+        "icon": "$(refresh)"
+      },
+      {
+        "command": "backtrack.search",
+        "title": "Search Sessions",
+        "category": "Backtrack",
+        "icon": "$(search)"
+      },
+      {
+        "command": "backtrack.toggleGroupBy",
+        "title": "Toggle Group By",
+        "category": "Backtrack",
+        "icon": "$(list-tree)"
+      },
+      {
+        "command": "backtrack.viewSession",
+        "title": "View Session Details",
+        "category": "Backtrack"
+      },
+      {
+        "command": "backtrack.resumeSession",
+        "title": "Resume in Terminal",
+        "category": "Backtrack",
+        "icon": "$(play)"
+      },
+      {
+        "command": "backtrack.exportMarkdown",
+        "title": "Export to Markdown",
+        "category": "Backtrack"
+      },
+      {
+        "command": "backtrack.bookmarkSession",
+        "title": "Bookmark Session",
+        "category": "Backtrack"
+      },
+      {
+        "command": "backtrack.unbookmarkSession",
+        "title": "Remove Bookmark",
+        "category": "Backtrack"
+      },
+      {
+        "command": "backtrack.copySessionId",
+        "title": "Copy Session ID",
+        "category": "Backtrack"
+      },
+      {
+        "command": "backtrack.revealInExplorer",
+        "title": "Reveal .jsonl File in Explorer",
+        "category": "Backtrack"
+      },
+      {
+        "command": "backtrack.openProjectFolder",
+        "title": "Open Project Folder",
+        "category": "Backtrack"
+      },
+      {
+        "command": "backtrack.openProjectInNewWindow",
+        "title": "Open Project in New Window",
+        "category": "Backtrack"
+      },
+      {
+        "command": "backtrack.clearSearch",
+        "title": "Clear Search",
+        "category": "Backtrack"
+      }
+    ],
+    "menus": {
+      "view/title": [
+        {
+          "command": "backtrack.search",
+          "when": "view == backtrack.allSessions",
+          "group": "navigation@1"
+        },
+        {
+          "command": "backtrack.toggleGroupBy",
+          "when": "view == backtrack.allSessions",
+          "group": "navigation@2"
+        },
+        {
+          "command": "backtrack.refresh",
+          "when": "view == backtrack.allSessions",
+          "group": "navigation@3"
+        }
+      ],
+      "view/item/context": [
+        {
+          "command": "backtrack.viewSession",
+          "when": "viewItem == session || viewItem == bookmarkedSession",
+          "group": "1_session@1"
+        },
+        {
+          "command": "backtrack.resumeSession",
+          "when": "viewItem == session || viewItem == bookmarkedSession",
+          "group": "1_session@2"
+        },
+        {
+          "command": "backtrack.exportMarkdown",
+          "when": "viewItem == session || viewItem == bookmarkedSession",
+          "group": "1_session@3"
+        },
+        {
+          "command": "backtrack.bookmarkSession",
+          "when": "viewItem == session",
+          "group": "2_manage@1"
+        },
+        {
+          "command": "backtrack.unbookmarkSession",
+          "when": "viewItem == bookmarkedSession",
+          "group": "2_manage@1"
+        },
+        {
+          "command": "backtrack.copySessionId",
+          "when": "viewItem == session || viewItem == bookmarkedSession",
+          "group": "2_manage@2"
+        },
+        {
+          "command": "backtrack.revealInExplorer",
+          "when": "viewItem == session || viewItem == bookmarkedSession",
+          "group": "2_manage@3"
+        },
+        {
+          "command": "backtrack.openProjectFolder",
+          "when": "viewItem == project",
+          "group": "1_project@1"
+        },
+        {
+          "command": "backtrack.openProjectInNewWindow",
+          "when": "viewItem == project",
+          "group": "1_project@2"
+        }
+      ]
+    },
+    "configuration": {
+      "title": "Backtrack",
+      "properties": {
+        "backtrack.claudeDir": {
+          "type": "string",
+          "default": "",
+          "description": "Custom path to .claude directory. Leave empty for auto-detection."
+        },
+        "backtrack.groupBy": {
+          "type": "string",
+          "enum": [
+            "project",
+            "date",
+            "flat"
+          ],
+          "default": "project",
+          "description": "How to group sessions in the tree view."
+        },
+        "backtrack.maxSessionsPerProject": {
+          "type": "number",
+          "default": 50,
+          "description": "Maximum sessions to show per project (0 = unlimited)."
+        },
+        "backtrack.showMessageCount": {
+          "type": "boolean",
+          "default": true,
+          "description": "Show message count in session tooltips."
+        }
+      }
+    }
+  },
+  "scripts": {
+    "vscode:prepublish": "npm run compile",
+    "compile": "tsc -p ./",
+    "watch": "tsc -watch -p ./",
+    "lint": "eslint src --ext ts",
+    "test": "node ./out/test/suite/index.js",
+    "package": "vsce package",
+    "publish": "vsce publish"
+  },
+  "devDependencies": {
+    "@types/node": "^20.0.0",
+    "@types/vscode": "^1.80.0",
+    "@typescript-eslint/eslint-plugin": "^7.0.0",
+    "@typescript-eslint/parser": "^7.0.0",
+    "@vscode/vsce": "^2.24.0",
+    "eslint": "^8.57.0",
+    "typescript": "^5.4.0"
+  }
+}

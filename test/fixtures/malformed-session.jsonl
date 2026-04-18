@@ -1,0 +1,8 @@
+{"type":"queue-operation","operation":"enqueue"}
+{this is not valid json at all
+{"type":"user","message":{"role":"user","content":[{"type":"text","text":"Valid message after malformed line"}]},"uuid":"msg-001"}
+{"type":"assistant","message":{"role":"assistant","content":"Simple string content (old format)"},"uuid":"msg-002"}
+null
+{"type":"user","content":"Even older format with top-level content","uuid":"msg-003"}
+
+{"type":"assistant","message":{"role":"assistant","content":[]},"uuid":"msg-004"}
