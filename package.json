@@ -30,11 +30,11 @@
     "conversation",
     "resume"
   ],
-  "activationEvents": [
-    "onView:backtrack.allSessions",
-    "onView:backtrack.bookmarks"
-  ],
-  "main": "./out/extension.js",
+  "activationEvents": ["*"],
+  "main": "./out/src/extension.js",
+  "bin": {
+    "backtrack": "./bin/backtrack.js"
+  },
   "icon": "media/icon.png",
   "contributes": {
     "viewsContainers": {
@@ -235,7 +235,8 @@
     "lint": "eslint src --ext ts",
     "test": "node ./out/test/suite/index.js",
     "package": "vsce package",
-    "publish": "vsce publish"
+    "publish": "vsce publish",
+    "link-cli": "npm run compile && npm link"
   },
   "devDependencies": {
     "@types/node": "^20.0.0",

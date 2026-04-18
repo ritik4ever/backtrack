@@ -138,13 +138,20 @@ export function activate(context: vscode.ExtensionContext): void {
       const meta = 'session' in item ? item.session : (item as SessionTreeItem).session;
       if (!meta) return;
 
-      const cmd = `claude --resume ${meta.id}`;
+      const isWsl = process.platform === 'linux' && require('fs').existsSync('/mnt/c');
+      const cmd = isWsl
+        ? `cmd.exe /c "claude --resume ${meta.id}"`
+        : `claude --resume ${meta.id}`;
+
+      // On WSL, open a PowerShell terminal so claude.cmd is on PATH
       let terminal = vscode.window.terminals.find((t) => t.name === 'Claude Code');
       if (!terminal) {
-        terminal = vscode.window.createTerminal({ name: 'Claude Code', cwd: meta.projectPath });
+        const shellPath = isWsl ? 'powershell.exe' : undefined;
+        const cwd = isWsl ? `C:\\${meta.projectPath.replace(/^\/mnt\/c\//, '').replace(/\//g, '\\')}` : meta.projectPath;
+        terminal = vscode.window.createTerminal({ name: 'Claude Code', shellPath, cwd });
       }
       terminal.show();
-      terminal.sendText(cmd);
+      terminal.sendText(isWsl ? `claude --resume ${meta.id}` : cmd);
     })
   );
 
