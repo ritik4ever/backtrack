@@ -2,7 +2,7 @@
 
 **Backtrack to any Claude Code conversation. Browse, search, and resume sessions across all your projects.**
 
-> Zero telemetry · Fully open source (MIT) · No paid tier · Works as VS Code extension AND terminal CLI · WSL-aware
+> Zero telemetry · Fully open source (MIT) · No paid tier · Works as VS Code extension AND terminal CLI · macOS · Windows · WSL · Linux
 
 ---
 
@@ -16,13 +16,24 @@ Tracked upstream: [#34985](https://github.com/anthropics/claude-code/issues/3498
 
 ---
 
+## Platform Support
+
+| Platform | VS Code Extension | Terminal CLI |
+|---|---|---|
+| **macOS** | Native — works out of the box | Native — works out of the box |
+| **Windows** | Native | Native (PowerShell / cmd) |
+| **WSL** | Auto-detects Windows `.claude` | Needs `claude` installed in WSL |
+| **Linux** | Native | Native |
+
+---
+
 ## Two Ways to Use Backtrack
 
 | | VS Code Extension | Terminal CLI |
 |---|---|---|
-| **Best for** | Visual browsing, reading conversations | WSL, SSH, terminal-first workflow |
+| **Best for** | Visual browsing, reading conversations | SSH, terminal-first workflow |
 | **How to launch** | Click icon in Activity Bar | `backtrack` in any terminal |
-| **Search** | Click 🔍 in sidebar | Type to filter in real time |
+| **Search** | Click search icon in sidebar | Type to filter in real time |
 | **Resume** | Right-click → Resume | Press Enter on selected session |
 | **Install** | VS Code Marketplace | `npm link` after cloning |
 
@@ -32,8 +43,9 @@ Tracked upstream: [#34985](https://github.com/anthropics/claude-code/issues/3498
 
 ### Install
 
+**macOS / Windows / Linux:**
 1. Open VS Code
-2. `Ctrl+Shift+X` → search **Backtrack** → Install (publisher: `ritik4ever`)
+2. `Cmd+Shift+X` (macOS) or `Ctrl+Shift+X` (Windows/Linux) → search **Backtrack** → Install (publisher: `ritik4ever`)
 3. Click the **Backtrack icon** in the Activity Bar (left sidebar)
 
 ### Features
@@ -84,7 +96,10 @@ Open `Settings` → search **Backtrack**:
 | `backtrack.maxSessionsPerProject` | `50` | Sessions shown per project (0 = unlimited) |
 | `backtrack.showMessageCount` | `true` | Show message count in tooltips |
 
-### Commands (Command Palette `Ctrl+Shift+P`)
+### Commands (Command Palette)
+
+- macOS: `Cmd+Shift+P`
+- Windows/Linux: `Ctrl+Shift+P`
 
 All commands are under the **Backtrack** category:
 
@@ -114,6 +129,8 @@ npm install
 npm run compile
 npm link          # makes 'backtrack' available globally in your terminal
 ```
+
+Works on **macOS**, **Windows** (PowerShell/cmd), **WSL**, and **Linux** — no extra setup needed.
 
 ### Usage
 
@@ -155,7 +172,7 @@ Run `backtrack` with no arguments to open the interactive picker:
 
 ```bash
 # Find sessions about a specific project
-backtrack search stellarhack
+backtrack search myproject
 
 # Resume using just the first 8 chars of the ID
 backtrack resume c7e9dcfe
@@ -172,13 +189,34 @@ Backtrack reads `.jsonl` files from `~/.claude/projects/*/` using only Node.js b
 
 It decodes encoded folder names back to readable paths:
 ```
-c--Users-ritik-Desktop-stellarhack  →  C:/Users/ritik/Desktop/stellarhack
--home-ritik-projects-lodestar       →  /home/ritik/projects/lodestar
+c--Users-ritik-Desktop-stellarhack  →  C:/Users/ritik/Desktop/stellarhack  (Windows)
+-home-ritik-projects-myapp          →  /home/ritik/projects/myapp           (macOS/Linux)
+-Users-ritik-projects-myapp         →  /Users/ritik/projects/myapp          (macOS)
 ```
 
 **Your data never leaves your machine.** No analytics, no telemetry, no network requests.
 
 Bookmarks are saved to `~/.claude/backtrack-bookmarks.json`.
+
+---
+
+## macOS Notes
+
+Backtrack works natively on macOS — no WSL, no extra setup. Just install Claude Code and run Backtrack.
+
+```bash
+# macOS: install Claude Code CLI
+npm install -g @anthropic-ai/claude-code
+
+# Install Backtrack CLI
+git clone https://github.com/ritik4ever/backtrack
+cd backtrack && npm install && npm run compile && npm link
+
+# Run
+backtrack
+```
+
+Sessions are found automatically at `~/.claude/projects/`.
 
 ---
 
@@ -201,6 +239,7 @@ npm install -g @anthropic-ai/claude-code
 | Open source | MIT | Closed | Unknown |
 | Telemetry | None | Yes | Unknown |
 | Terminal CLI | Yes | No | No |
+| macOS support | Yes | Unknown | Unknown |
 | WSL auto-detect | Yes | Unknown | Unknown |
 | Full-text search | Yes | Yes | Basic |
 | Cross-project | Yes | Yes | Limited |
@@ -223,7 +262,7 @@ npm run compile
 
 ```bash
 npm run lint      # ESLint
-npm test          # 27 unit tests
+npm test          # unit tests
 npm run compile   # TypeScript compile
 ```
 
