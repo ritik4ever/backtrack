@@ -2,7 +2,7 @@
   "name": "backtrack",
   "displayName": "Backtrack",
   "description": "Backtrack to any Claude Code conversation. Browse, search, and resume sessions across all projects.",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "publisher": "ritik4ever",
   "license": "MIT",
   "repository": {
