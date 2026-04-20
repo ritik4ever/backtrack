@@ -152,6 +152,24 @@
         "command": "backtrack.mapStatus",
         "title": "Show Context Map Status",
         "category": "Backtrack"
+      },
+      {
+        "command": "backtrack.mapDiff",
+        "title": "Show Context Map Diff",
+        "category": "Backtrack",
+        "icon": "$(diff)"
+      },
+      {
+        "command": "backtrack.watchMap",
+        "title": "Watch for New Sessions (Toggle)",
+        "category": "Backtrack",
+        "icon": "$(eye)"
+      },
+      {
+        "command": "backtrack.showContextMap",
+        "title": "Show Context Map (Visual)",
+        "category": "Backtrack",
+        "icon": "$(graph)"
       }
     ],
     "menus": {

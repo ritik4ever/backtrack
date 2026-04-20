@@ -1,8 +1,8 @@
 import * as fs from 'fs';
 import * as path from 'path';
 import {
-  Bug, Convention, Decision, Dependency,
-  EntityStore, FileContext, TimelineEvent, TodoItem,
+  Bug, Convention, ContextMap, ContextSnapshot, Decision, Dependency,
+  DiffResult, EntityStore, FileContext, Person, TimelineEvent, TodoItem,
 } from './contextTypes';
 
 export const BACKTRACK_DIR = '.backtrack';
@@ -55,6 +55,7 @@ export function loadEntityStore(projectPath: string): EntityStore {
     conventions: readJson<Convention[]>(entityPath(projectPath, 'conventions.json'), []),
     dependencies: readJson<Dependency[]>(entityPath(projectPath, 'dependencies.json'), []),
     todos: readJson<TodoItem[]>(entityPath(projectPath, 'todos.json'), []),
+    people: readJson<Person[]>(entityPath(projectPath, 'people.json'), []),
     timeline: readJson<TimelineEvent[]>(timelinePath(projectPath), []),
   };
 }
@@ -66,8 +67,72 @@ export function saveEntityStore(projectPath: string, store: EntityStore): void {
   writeJson(entityPath(projectPath, 'conventions.json'), store.conventions);
   writeJson(entityPath(projectPath, 'dependencies.json'), store.dependencies);
   writeJson(entityPath(projectPath, 'todos.json'), store.todos);
+  writeJson(entityPath(projectPath, 'people.json'), store.people);
   writeJson(timelinePath(projectPath), store.timeline);
 }
+
+// ── Snapshot & Diff ───────────────────────────────────────────────────────────
+
+export function takeSnapshot(store: EntityStore): ContextSnapshot {
+  return {
+    decisionsCount: store.decisions.length,
+    bugsCount: store.bugs.length,
+    openBugsCount: store.bugs.filter(b => b.status === 'open').length,
+    todosCount: store.todos.length,
+    openTodosCount: store.todos.filter(t => t.status === 'open').length,
+    conventionsCount: store.conventions.length,
+    filesCount: Object.keys(store.files).length,
+    dependenciesCount: store.dependencies.length,
+    peopleCount: store.people.length,
+    timelineCount: store.timeline.length,
+    takenAt: new Date().toISOString(),
+  };
+}
+
+export function computeDiff(prev: ContextSnapshot, curr: ContextSnapshot, sessionsAdded: number): DiffResult {
+  return {
+    decisions: { added: Math.max(0, curr.decisionsCount - prev.decisionsCount), removed: 0 },
+    bugs: {
+      added: Math.max(0, curr.bugsCount - prev.bugsCount),
+      fixed: Math.max(0, prev.openBugsCount - curr.openBugsCount),
+    },
+    todos: {
+      added: Math.max(0, curr.todosCount - prev.todosCount),
+      completed: Math.max(0, prev.openTodosCount - curr.openTodosCount),
+    },
+    conventions: { added: Math.max(0, curr.conventionsCount - prev.conventionsCount) },
+    files: { added: Math.max(0, curr.filesCount - prev.filesCount) },
+    people: { added: Math.max(0, curr.peopleCount - prev.peopleCount) },
+    timeline: { added: Math.max(0, curr.timelineCount - prev.timelineCount) },
+    sessionsAdded,
+  };
+}
+
+export function formatDiff(diff: DiffResult): string {
+  const lines: string[] = ['Context map diff since last run:\n'];
+  if (diff.sessionsAdded) lines.push(`  Sessions:     +${diff.sessionsAdded}`);
+  if (diff.decisions.added) lines.push(`  Decisions:    +${diff.decisions.added}`);
+  if (diff.bugs.added || diff.bugs.fixed) {
+    const parts = [];
+    if (diff.bugs.added) parts.push(`+${diff.bugs.added} new`);
+    if (diff.bugs.fixed) parts.push(`${diff.bugs.fixed} fixed`);
+    lines.push(`  Bugs:         ${parts.join(', ')}`);
+  }
+  if (diff.todos.added || diff.todos.completed) {
+    const parts = [];
+    if (diff.todos.added) parts.push(`+${diff.todos.added} new`);
+    if (diff.todos.completed) parts.push(`${diff.todos.completed} completed`);
+    lines.push(`  TODOs:        ${parts.join(', ')}`);
+  }
+  if (diff.conventions.added) lines.push(`  Conventions:  +${diff.conventions.added}`);
+  if (diff.files.added) lines.push(`  Files:        +${diff.files.added}`);
+  if (diff.people.added) lines.push(`  People:       +${diff.people.added}`);
+  if (diff.timeline.added) lines.push(`  Timeline:     +${diff.timeline.added} events`);
+  if (lines.length === 1) lines.push('  No changes detected.');
+  return lines.join('\n');
+}
+
+// ── Merge functions ───────────────────────────────────────────────────────────
 
 export function mergeDecisions(existing: Decision[], incoming: Decision[]): Decision[] {
   const map = new Map(existing.map(d => [d.id, d]));
@@ -82,7 +147,6 @@ export function mergeBugs(existing: Bug[], incoming: Bug[]): Bug[] {
   for (const b of incoming) {
     if (!map.has(b.id)) map.set(b.id, b);
     else {
-      // Update status if incoming has a resolution
       const ex = map.get(b.id)!;
       if (ex.status === 'open' && b.status !== 'open') map.set(b.id, { ...ex, ...b });
     }
@@ -114,6 +178,26 @@ export function mergeTodos(existing: TodoItem[], incoming: TodoItem[]): TodoItem
   const map = new Map(existing.map(t => [t.id, t]));
   for (const t of incoming) {
     if (!map.has(t.id)) map.set(t.id, t);
+  }
+  return Array.from(map.values());
+}
+
+export function mergePeople(existing: Person[], incoming: Person[]): Person[] {
+  const map = new Map(existing.map(p => [p.name.toLowerCase(), p]));
+  for (const p of incoming) {
+    const key = p.name.toLowerCase();
+    if (!map.has(key)) {
+      map.set(key, p);
+    } else {
+      const ex = map.get(key)!;
+      map.set(key, {
+        ...ex,
+        lastMentioned: p.lastMentioned > ex.lastMentioned ? p.lastMentioned : ex.lastMentioned,
+        sessionIds: [...new Set([...ex.sessionIds, ...p.sessionIds])],
+        role: ex.role || p.role,
+        context: ex.context || p.context,
+      });
+    }
   }
   return Array.from(map.values());
 }
@@ -165,9 +249,7 @@ export function ensureGitignore(projectPath: string): void {
         fs.appendFileSync(gitignorePath, `\n# Backtrack context maps\n${entry}\n`);
       }
     }
-  } catch {
-    // Non-critical — don't fail if .gitignore is unwritable
-  }
+  } catch { /* non-critical */ }
 }
 
 export function writeSummary(projectPath: string, sessionId: string, summary: string): void {
@@ -176,4 +258,12 @@ export function writeSummary(projectPath: string, sessionId: string, summary: st
   );
   fs.mkdirSync(path.dirname(summaryPath), { recursive: true });
   fs.writeFileSync(summaryPath, summary, 'utf8');
+}
+
+export function loadContextMap(filePath: string): ContextMap | null {
+  try {
+    return JSON.parse(fs.readFileSync(filePath, 'utf8')) as ContextMap;
+  } catch {
+    return null;
+  }
 }

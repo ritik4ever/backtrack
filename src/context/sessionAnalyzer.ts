@@ -4,7 +4,7 @@ import * as readline from 'readline';
 import { RawLine, RawContent, RawContentBlock } from '../types';
 import {
   Bug, Convention, Decision, Dependency,
-  EntityStore, FileContext, TimelineEvent, TodoItem,
+  FileContext, Person, TimelineEvent, TodoItem,
 } from './contextTypes';
 
 // ── Text extraction ───────────────────────────────────────────────────────────
@@ -78,6 +78,20 @@ const DEP_PATTERNS = [
   /require\(['"]([^.'"@][^'"]{2,40})['"]\)/,
 ];
 
+const PEOPLE_PATTERNS = [
+  /(?:@|mentioned by|assigned to|owned by|contact)\s+([A-Z][a-z]+(?:\s[A-Z][a-z]+)?)/g,
+  /(?:^|\s)([A-Z][a-z]+)\s+(?:said|mentioned|suggested|reviewed|built|created|fixed|owns|is working on)/gm,
+  /(?:team member|colleague|developer|engineer|designer|pm|lead)[:.]?\s+([A-Z][a-z]+(?:\s[A-Z][a-z]+)?)/gi,
+];
+
+const ROLE_PATTERNS: Record<string, RegExp> = {
+  'frontend': /front.?end|ui|ux|designer/i,
+  'backend': /back.?end|api|server/i,
+  'devops': /devops|infra|deploy|ci.?cd/i,
+  'lead': /lead|senior|principal|architect/i,
+  'pm': /pm|product manager|manager/i,
+};
+
 const STACK_KEYWORDS: Record<string, string[]> = {
   languages: ['TypeScript', 'JavaScript', 'Python', 'Rust', 'Go', 'Java', 'C#', 'Ruby', 'Swift', 'Kotlin', 'PHP'],
   frontend: ['React', 'Next.js', 'Vue', 'Angular', 'Svelte', 'Tailwind', 'Vite', 'Webpack'],
@@ -116,8 +130,8 @@ export interface AnalysisResult {
   conventions: Convention[];
   dependencies: Dependency[];
   todos: TodoItem[];
+  people: Person[];
   timeline: TimelineEvent[];
-  stackHints: Partial<EntityStore['decisions']>;
   detectedStack: Record<string, string[]>;
 }
 
@@ -128,7 +142,7 @@ let todoCounter = 0;
 export async function analyzeSession(
   filePath: string,
   sessionId: string,
-  projectPath: string
+  _projectPath: string
 ): Promise<AnalysisResult> {
   const result: AnalysisResult = {
     decisions: [],
@@ -137,8 +151,8 @@ export async function analyzeSession(
     conventions: [],
     dependencies: [],
     todos: [],
+    people: [],
     timeline: [],
-    stackHints: [],
     detectedStack: {},
   };
 
@@ -239,6 +253,31 @@ export async function analyzeSession(
       if (result.todos.length >= 8) break;
     }
     if (result.todos.length >= 8) break;
+  }
+
+  // ── People ──────────────────────────────────────────────────────────────────
+  const COMMON_WORDS = new Set(['The', 'This', 'That', 'Here', 'When', 'Then', 'Also', 'Just', 'Now', 'With', 'From', 'Into', 'They', 'True', 'False', 'Error', 'Todo', 'Note', 'See', 'Let', 'Get', 'Set']);
+  for (const pattern of PEOPLE_PATTERNS) {
+    const matches = fullText.matchAll(pattern);
+    for (const m of matches) {
+      const name = m[1]?.trim();
+      if (!name || name.length < 2 || COMMON_WORDS.has(name)) continue;
+      if (result.people.some(p => p.name.toLowerCase() === name.toLowerCase())) continue;
+      let role = '';
+      for (const [r, rp] of Object.entries(ROLE_PATTERNS)) {
+        if (rp.test(fullText)) { role = r; break; }
+      }
+      result.people.push({
+        name,
+        role,
+        firstMentioned: today,
+        lastMentioned: today,
+        sessionIds: [sessionId],
+        context: m[0]?.trim().slice(0, 100) ?? '',
+      });
+      if (result.people.length >= 10) break;
+    }
+    if (result.people.length >= 10) break;
   }
 
   // ── Dependencies ─────────────────────────────────────────────────────────────

@@ -62,6 +62,15 @@ export interface TodoItem {
   context: string;
 }
 
+export interface Person {
+  name: string;
+  role: string;
+  firstMentioned: string;
+  lastMentioned: string;
+  sessionIds: string[];
+  context: string;
+}
+
 export interface TimelineEvent {
   date: string;
   type: 'milestone' | 'decision' | 'bug' | 'refactor' | 'deploy' | 'note';
@@ -87,6 +96,20 @@ export interface QuickContext {
   lastSession: { id: string; date: string; summary: string } | null;
 }
 
+export interface ContextSnapshot {
+  decisionsCount: number;
+  bugsCount: number;
+  openBugsCount: number;
+  todosCount: number;
+  openTodosCount: number;
+  conventionsCount: number;
+  filesCount: number;
+  dependenciesCount: number;
+  peopleCount: number;
+  timelineCount: number;
+  takenAt: string;
+}
+
 export interface ContextMap {
   version: number;
   project: string;
@@ -102,9 +125,11 @@ export interface ContextMap {
     conventions: string;
     dependencies: string;
     todos: string;
+    people: string;
     timeline: string;
   };
   quickContext: QuickContext;
+  snapshot?: ContextSnapshot;
 }
 
 export interface EntityStore {
@@ -114,6 +139,7 @@ export interface EntityStore {
   conventions: Convention[];
   dependencies: Dependency[];
   todos: TodoItem[];
+  people: Person[];
   timeline: TimelineEvent[];
 }
 
@@ -123,4 +149,15 @@ export interface MapOptions {
   incremental?: boolean;
   reset?: boolean;
   verbose?: boolean;
+}
+
+export interface DiffResult {
+  decisions: { added: number; removed: number };
+  bugs: { added: number; fixed: number };
+  todos: { added: number; completed: number };
+  conventions: { added: number };
+  files: { added: number };
+  people: { added: number };
+  timeline: { added: number };
+  sessionsAdded: number;
 }

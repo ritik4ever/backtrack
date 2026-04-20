@@ -11,7 +11,8 @@ import { searchSessions } from './utils/search';
 import { exportToMarkdown, suggestedFilename } from './utils/exporter';
 import { parseFullMessages } from './utils/sessionParser';
 import { SessionWebviewPanel } from './views/sessionWebview';
-import { runContextMap, getMapStatus } from './context/contextMapper';
+import { ContextMapWebviewPanel } from './views/contextMapWebview';
+import { runContextMap, getMapStatus, diffContextMap, watchContextMap } from './context/contextMapper';
 import { queryContext, formatQueryResults } from './context/contextQuery';
 
 export function activate(context: vscode.ExtensionContext): void {
@@ -335,6 +336,50 @@ export function activate(context: vscode.ExtensionContext): void {
       if (!workspacePath) return;
       const status = getMapStatus(workspacePath);
       vscode.window.showInformationMessage(status);
+    })
+  );
+
+  /** Show diff since last map run */
+  context.subscriptions.push(
+    vscode.commands.registerCommand('backtrack.mapDiff', async () => {
+      const workspacePath = vscode.workspace.workspaceFolders?.[0]?.uri.fsPath;
+      if (!workspacePath) return;
+      const diff = diffContextMap(workspacePath);
+      const doc = await vscode.workspace.openTextDocument({ content: diff, language: 'markdown' });
+      vscode.window.showTextDocument(doc);
+    })
+  );
+
+  /** Watch for new sessions and auto-update map */
+  let stopWatch: (() => void) | null = null;
+  context.subscriptions.push(
+    vscode.commands.registerCommand('backtrack.watchMap', () => {
+      const workspacePath = vscode.workspace.workspaceFolders?.[0]?.uri.fsPath;
+      if (!workspacePath) return;
+      const claudeDir = findClaudeDir(
+        vscode.workspace.getConfiguration('backtrack').get<string>('claudeDir', '')
+      );
+      if (!claudeDir) { vscode.window.showErrorMessage('Backtrack: Could not find ~/.claude'); return; }
+      if (stopWatch) {
+        stopWatch();
+        stopWatch = null;
+        vscode.window.showInformationMessage('Backtrack: Watch stopped.');
+        return;
+      }
+      stopWatch = watchContextMap(workspacePath, claudeDir, (msg) => {
+        vscode.window.setStatusBarMessage(`Backtrack: ${msg}`, 5000);
+      });
+      vscode.window.showInformationMessage('Backtrack: Watching for new sessions… (run command again to stop)');
+    })
+  );
+  context.subscriptions.push({ dispose: () => { if (stopWatch) stopWatch(); } });
+
+  /** Show visual context map webview */
+  context.subscriptions.push(
+    vscode.commands.registerCommand('backtrack.showContextMap', () => {
+      const workspacePath = vscode.workspace.workspaceFolders?.[0]?.uri.fsPath;
+      if (!workspacePath) { vscode.window.showErrorMessage('Backtrack: No workspace folder open.'); return; }
+      ContextMapWebviewPanel.show(workspacePath, context);
     })
   );
 

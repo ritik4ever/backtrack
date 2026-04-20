@@ -16,7 +16,7 @@ import { listSessionFiles, parseSessionMeta } from '../utils/sessionParser';
 import { fastSearch } from '../utils/search';
 import { relativeTime, truncate } from '../utils/formatters';
 import { SessionMeta } from '../types';
-import { runContextMap, exportContextAsMarkdown, getMapStatus } from '../context/contextMapper';
+import { runContextMap, exportContextAsMarkdown, getMapStatus, diffContextMap, watchContextMap } from '../context/contextMapper';
 import { queryContext, formatQueryResults } from '../context/contextQuery';
 
 // ── ANSI helpers ─────────────────────────────────────────────────────────────
@@ -293,13 +293,26 @@ async function cmdMap(args: string[]): Promise<void> {
   }
 
   if (sub === 'diff') {
-    console.log(`${D}(diff not yet implemented — check .backtrack/ manually)${R}`);
+    console.log(diffContextMap(process.cwd()));
     return;
   }
 
   const isExport    = args.includes('--export');
   const isReset     = args.includes('--reset');
   const incremental = args.includes('--incremental');
+  const isWatch     = args.includes('--watch');
+
+  if (isWatch) {
+    if (!claudeDir) die('Could not find ~/.claude directory.');
+    console.log(`${B}${FG.cyan}Backtrack Watch${R}  ${D}${process.cwd()}${R}\n`);
+    const stop = watchContextMap(process.cwd(), claudeDir, (msg) => {
+      process.stdout.write(`  ${D}${new Date().toLocaleTimeString()}${R}  ${msg}\n`);
+    });
+    process.on('SIGINT', () => { stop(); process.stdout.write(SHOW + '\n'); process.exit(0); });
+    process.on('SIGTERM', () => { stop(); process.exit(0); });
+    await new Promise(() => { /* run until killed */ });
+    return;
+  }
 
   if (isExport) {
     const md = exportContextAsMarkdown(process.cwd());
