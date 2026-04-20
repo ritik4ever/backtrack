@@ -144,8 +144,8 @@ export function activate(context: vscode.ExtensionContext): void {
 
       const choice = await vscode.window.showQuickPick(
         [
-          { label: '$(terminal) Resume in Terminal', description: 'Opens claude --resume in a terminal tab', value: 'terminal' },
-          { label: '$(extensions) Resume in Claude Code', description: 'Opens session directly in the Claude Code VS Code extension', value: 'extension' },
+          { label: '$(terminal) Resume in Terminal', description: 'Run claude --resume in a VS Code terminal tab', value: 'terminal' },
+          { label: '$(comment-discussion) Resume in Claude Code Panel', description: 'Copy resume command + open Claude Code chat panel', value: 'extension' },
         ],
         { title: `Resume: ${meta.title.slice(0, 60)}`, placeHolder: 'Choose how to resume this session' }
       );
@@ -177,20 +177,32 @@ export function activate(context: vscode.ExtensionContext): void {
           });
         }
         terminal.show();
-        const cmd = isWsl
-          ? `claude --resume ${meta.id}`
-          : `claude --resume ${meta.id}`;
-        terminal.sendText(cmd);
-      } else {
-        // Open in Claude Code extension — uses `claude` CLI with no terminal shown
-        const cwd = safeCwd(meta.projectPath);
-        const terminal = vscode.window.createTerminal({
-          name: `Claude: ${meta.title.slice(0, 30)}`,
-          cwd,
-          isTransient: true,
-        });
-        terminal.show();
         terminal.sendText(`claude --resume ${meta.id}`);
+      } else {
+        // Copy session ID to clipboard and focus Claude Code panel
+        const resumeCmd = `claude --resume ${meta.id}`;
+        await vscode.env.clipboard.writeText(resumeCmd);
+
+        // Try to focus the Claude Code extension panel
+        try {
+          await vscode.commands.executeCommand('workbench.panel.chat.view.copilot.focus');
+        } catch {
+          try {
+            await vscode.commands.executeCommand('claude-code.focus');
+          } catch { /* Claude Code panel not found */ }
+        }
+
+        const action = await vscode.window.showInformationMessage(
+          `Resume command copied to clipboard. Paste it in the Claude Code chat input:`,
+          { detail: resumeCmd },
+          'Open Terminal Instead'
+        );
+        if (action === 'Open Terminal Instead') {
+          const cwd = safeCwd(meta.projectPath);
+          const terminal = vscode.window.createTerminal({ name: 'Claude Code', cwd });
+          terminal.show();
+          terminal.sendText(resumeCmd);
+        }
       }
     })
   );
