@@ -2,7 +2,7 @@
   "name": "backtrack",
   "displayName": "Backtrack",
   "description": "Backtrack to any Claude Code conversation. Browse, search, and resume sessions across all projects.",
-  "version": "0.1.1",
+  "version": "0.1.2",
   "publisher": "ritik4ever",
   "license": "MIT",
   "repository": {
@@ -128,6 +128,29 @@
       {
         "command": "backtrack.clearSearch",
         "title": "Clear Search",
+        "category": "Backtrack"
+      },
+      {
+        "command": "backtrack.mapProject",
+        "title": "Map Project Context",
+        "category": "Backtrack",
+        "icon": "$(database)"
+      },
+      {
+        "command": "backtrack.updateProjectMap",
+        "title": "Update Project Map (Incremental)",
+        "category": "Backtrack",
+        "icon": "$(sync)"
+      },
+      {
+        "command": "backtrack.queryContext",
+        "title": "Query Context Map",
+        "category": "Backtrack",
+        "icon": "$(search)"
+      },
+      {
+        "command": "backtrack.mapStatus",
+        "title": "Show Context Map Status",
         "category": "Backtrack"
       }
     ],

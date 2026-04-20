@@ -293,14 +293,85 @@ bin/
 
 ---
 
+## Project Context Mapping
+
+Backtrack can build a structured knowledge base from your session history, giving Claude Code full project context on every new session.
+
+### What it does
+
+Running `backtrack map` inside your project analyses all Claude Code sessions for that project and produces a `.backtrack/` folder:
+
+```
+.backtrack/
+├── context.json              # Master index
+├── CLAUDE.md                 # Auto-generated project summary
+├── entities/
+│   ├── decisions.json        # Architectural decisions
+│   ├── files.json            # File-level context
+│   ├── bugs.json             # Bugs found + fixes
+│   ├── conventions.json      # Code style / patterns
+│   ├── dependencies.json     # Packages and why they were added
+│   └── todos.json            # Open items and planned features
+├── timeline/
+│   └── events.json           # Chronological milestones
+└── sessions/
+    └── summaries/            # One-paragraph summary per session
+```
+
+### CLI Usage
+
+```bash
+cd my-project
+backtrack map                    # Full analysis (all sessions)
+backtrack map --incremental      # Only process new sessions
+backtrack map --export           # Print context as markdown
+backtrack map --reset            # Delete and regenerate
+backtrack map status             # Show what's mapped
+backtrack map query "why x402"   # Search the context map
+```
+
+### VS Code Commands (`Ctrl+Shift+P`)
+
+| Command | Description |
+|---|---|
+| `Backtrack: Map Project Context` | Full context map generation |
+| `Backtrack: Update Project Map` | Incremental — only new sessions |
+| `Backtrack: Query Context Map` | Search decisions, bugs, todos |
+| `Backtrack: Show Context Map Status` | Summary of what's mapped |
+
+### Using with Claude Code
+
+After running `backtrack map`, add one line to your project's `CLAUDE.md`:
+
+```markdown
+See .backtrack/CLAUDE.md for full project context (decisions, bugs, conventions, todos).
+```
+
+Claude Code will then load the full knowledge map at the start of every session — no more re-explaining your stack, past decisions, or open issues.
+
+### How it extracts information
+
+Backtrack uses regex pattern matching on session text (no API calls, no tokens):
+- **Decisions** — "decided to", "going with", "we chose", "instead of"
+- **Bugs** — error/stack traces, "fixed", "root cause", "the issue was"
+- **Conventions** — "always", "never", "rule", "make sure", "pattern"
+- **TODOs** — "TODO:", "need to add", "planned", "known issue"
+- **Stack** — package names, import statements, framework mentions
+- **Files** — paths from tool_use blocks (Read/Edit/Write calls)
+
+`.backtrack/` is automatically added to `.gitignore`. The `CLAUDE.md` file is **not** gitignored so your whole team benefits.
+
+---
+
 ## Roadmap
 
 - [ ] Stats panel (total sessions, messages, active days heatmap)
 - [ ] Session comparison / diff view
 - [ ] Export to JSON
 - [ ] Session tagging / labels
+- [ ] AI-powered extraction mode (opt-in, uses Claude API for higher quality)
+- [ ] Context map webview — visual knowledge graph
 - [ ] `backtrack` in PATH via VS Code extension (no separate install)
-- [ ] Settings UI webview
 
 ---
 

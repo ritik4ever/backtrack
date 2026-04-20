@@ -16,6 +16,8 @@ import { listSessionFiles, parseSessionMeta } from '../utils/sessionParser';
 import { fastSearch } from '../utils/search';
 import { relativeTime, truncate } from '../utils/formatters';
 import { SessionMeta } from '../types';
+import { runContextMap, exportContextAsMarkdown, getMapStatus } from '../context/contextMapper';
+import { queryContext, formatQueryResults } from '../context/contextQuery';
 
 // ── ANSI helpers ─────────────────────────────────────────────────────────────
 
@@ -271,6 +273,65 @@ async function interactivePicker(initialQuery = ''): Promise<void> {
   });
 }
 
+// ── Map command ───────────────────────────────────────────────────────────────
+
+async function cmdMap(args: string[]): Promise<void> {
+  const sub = args[0];
+  const claudeDir = findClaudeDir() ?? '';
+
+  if (sub === 'status') {
+    console.log(getMapStatus(process.cwd()));
+    return;
+  }
+
+  if (sub === 'query') {
+    const q = args.slice(1).join(' ');
+    if (!q) die('Usage: backtrack map query <query>');
+    const matches = queryContext(process.cwd(), q);
+    console.log(formatQueryResults(matches));
+    return;
+  }
+
+  if (sub === 'diff') {
+    console.log(`${D}(diff not yet implemented — check .backtrack/ manually)${R}`);
+    return;
+  }
+
+  const isExport    = args.includes('--export');
+  const isReset     = args.includes('--reset');
+  const incremental = args.includes('--incremental');
+
+  if (isExport) {
+    const md = exportContextAsMarkdown(process.cwd());
+    console.log(md);
+    return;
+  }
+
+  const projectPath = process.cwd();
+  if (!claudeDir) die('Could not find ~/.claude directory. Is Claude Code installed?');
+
+  console.log(`${B}${FG.cyan}Backtrack Map${R}  ${D}${projectPath}${R}\n`);
+
+  try {
+    const result = await runContextMap(
+      { projectPath, claudeDir, incremental, reset: isReset },
+      (msg) => process.stdout.write(`  ${D}${msg}${R}\n`)
+    );
+
+    console.log(`
+${FG.green}Done!${R}
+  Sessions processed: ${B}${result.sessionsProcessed}${R}
+  Context map:        ${D}${result.contextJsonPath}${R}
+  CLAUDE.md:          ${D}${result.claudeMdPath}${R}
+
+${D}Add this to your project CLAUDE.md to give Claude Code full context:${R}
+  ${B}See .backtrack/CLAUDE.md for project knowledge map${R}
+`);
+  } catch (err: unknown) {
+    die(String(err));
+  }
+}
+
 // ── Help ──────────────────────────────────────────────────────────────────────
 
 function printHelp(): void {
@@ -282,6 +343,12 @@ ${B}Usage:${R}
   backtrack list               List all sessions grouped by project
   backtrack search <query>     Search and list matching sessions
   backtrack resume <id>        Resume a specific session by ID (or prefix)
+  backtrack map                Build context map for current project
+  backtrack map --incremental  Only process new sessions
+  backtrack map --export       Export context map as markdown
+  backtrack map --reset        Delete and regenerate context map
+  backtrack map status         Show context map status
+  backtrack map query <q>      Search the context map
 
 ${B}In the picker:${R}
   ↑ / ↓                        Navigate sessions
@@ -293,6 +360,8 @@ ${B}In the picker:${R}
 ${B}Examples:${R}
   backtrack search stellarhack
   backtrack resume c7e9dcfe
+  backtrack map
+  backtrack map query "why did we choose x402"
 
 ${D}Sessions are read from ~/.claude/projects/ — no data leaves your machine.${R}
 `);
@@ -318,6 +387,11 @@ async function main(): Promise<void> {
     const q = args.slice(1).join(' ');
     if (!q) die('Usage: backtrack search <query>');
     await cmdList(q);
+    return;
+  }
+
+  if (cmd === 'map') {
+    await cmdMap(args.slice(1));
     return;
   }
 
