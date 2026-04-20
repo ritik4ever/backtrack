@@ -280,6 +280,14 @@ src/
     sessionTreeProvider.ts  Sidebar tree (All Sessions)
     bookmarkProvider.ts     Sidebar tree (Bookmarked)
   views/sessionWebview.ts   Session conversation viewer
+  views/contextMapWebview.ts  Visual context map dashboard
+  context/
+    contextTypes.ts         All entity interfaces
+    entityStore.ts          Read/write/merge entity JSON files
+    sessionAnalyzer.ts      Regex extraction from session text
+    contextMapper.ts        Orchestration + watch + diff
+    claudeMdBridge.ts       Auto-generate CLAUDE.md
+    contextQuery.ts         Search across all entity files
   utils/
     claudeDir.ts            ~/.claude detection + path decoding
     sessionParser.ts        .jsonl parsing with mtime cache
@@ -311,7 +319,8 @@ Running `backtrack map` inside your project analyses all Claude Code sessions fo
 │   ├── bugs.json             # Bugs found + fixes
 │   ├── conventions.json      # Code style / patterns
 │   ├── dependencies.json     # Packages and why they were added
-│   └── todos.json            # Open items and planned features
+│   ├── todos.json            # Open items and planned features
+│   └── people.json           # Team members mentioned in sessions
 ├── timeline/
 │   └── events.json           # Chronological milestones
 └── sessions/
@@ -324,9 +333,11 @@ Running `backtrack map` inside your project analyses all Claude Code sessions fo
 cd my-project
 backtrack map                    # Full analysis (all sessions)
 backtrack map --incremental      # Only process new sessions
+backtrack map --watch            # Auto-update on every new session
 backtrack map --export           # Print context as markdown
 backtrack map --reset            # Delete and regenerate
 backtrack map status             # Show what's mapped
+backtrack map diff               # Show what changed since last run
 backtrack map query "why x402"   # Search the context map
 ```
 
@@ -336,15 +347,60 @@ backtrack map query "why x402"   # Search the context map
 |---|---|
 | `Backtrack: Map Project Context` | Full context map generation |
 | `Backtrack: Update Project Map` | Incremental — only new sessions |
-| `Backtrack: Query Context Map` | Search decisions, bugs, todos |
+| `Backtrack: Query Context Map` | Search decisions, bugs, todos, people |
 | `Backtrack: Show Context Map Status` | Summary of what's mapped |
+| `Backtrack: Show Context Map Diff` | What changed since last run |
+| `Backtrack: Watch for New Sessions` | Auto-update map on every new session (toggle) |
+| `Backtrack: Show Context Map (Visual)` | Visual dashboard — decisions, bugs, todos, people, timeline |
+
+### Visual Context Map
+
+Run `Backtrack: Show Context Map (Visual)` to open a rich dashboard showing:
+
+- **Overview** — sessions analyzed, bug/todo counts, files mapped
+- **Stack** — detected languages, frameworks, databases
+- **Key Decisions** — every architectural choice with status + session link
+- **Bugs** — open/fixed with root cause and fix details
+- **TODOs** — prioritized (high/medium/low) open items
+- **Conventions** — code style rules extracted from sessions
+- **People** — team members mentioned, their roles and session activity
+- **Dependencies** — packages detected with purpose
+- **Timeline** — chronological milestones across all sessions
+
+### Watch Mode
+
+```bash
+backtrack map --watch
+```
+
+Watches your project's Claude session directory for new `.jsonl` files. When a new session is saved, Backtrack automatically runs an incremental map and prints a diff summary. Press `Ctrl+C` to stop.
+
+In VS Code: `Backtrack: Watch for New Sessions` — runs silently in the background, shows status bar updates. Run the command again to stop.
+
+### Diff
+
+```bash
+backtrack map diff
+```
+
+Shows what changed in the context map since the last full run:
+
+```
+Context map diff since last run:
+  Sessions:     +2
+  Decisions:    +3
+  Bugs:         +1 new, 2 fixed
+  TODOs:        +4 new, 1 completed
+  People:       +1
+  Timeline:     +2 events
+```
 
 ### Using with Claude Code
 
 After running `backtrack map`, add one line to your project's `CLAUDE.md`:
 
 ```markdown
-See .backtrack/CLAUDE.md for full project context (decisions, bugs, conventions, todos).
+See .backtrack/CLAUDE.md for full project context (decisions, bugs, conventions, todos, people).
 ```
 
 Claude Code will then load the full knowledge map at the start of every session — no more re-explaining your stack, past decisions, or open issues.
@@ -356,6 +412,7 @@ Backtrack uses regex pattern matching on session text (no API calls, no tokens):
 - **Bugs** — error/stack traces, "fixed", "root cause", "the issue was"
 - **Conventions** — "always", "never", "rule", "make sure", "pattern"
 - **TODOs** — "TODO:", "need to add", "planned", "known issue"
+- **People** — names mentioned with roles (frontend, backend, lead, PM, etc.)
 - **Stack** — package names, import statements, framework mentions
 - **Files** — paths from tool_use blocks (Read/Edit/Write calls)
 
@@ -365,12 +422,15 @@ Backtrack uses regex pattern matching on session text (no API calls, no tokens):
 
 ## Roadmap
 
+- [x] Project context mapping (`backtrack map`)
+- [x] People extraction (`people.json`)
+- [x] Watch mode (`backtrack map --watch`)
+- [x] Diff view (`backtrack map diff`)
+- [x] Visual context map webview
 - [ ] Stats panel (total sessions, messages, active days heatmap)
-- [ ] Session comparison / diff view
 - [ ] Export to JSON
 - [ ] Session tagging / labels
 - [ ] AI-powered extraction mode (opt-in, uses Claude API for higher quality)
-- [ ] Context map webview — visual knowledge graph
 - [ ] `backtrack` in PATH via VS Code extension (no separate install)
 
 ---
