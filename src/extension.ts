@@ -136,26 +136,62 @@ export function activate(context: vscode.ExtensionContext): void {
     })
   );
 
-  /** Resume session in terminal */
+  /** Resume session — choose between Terminal or Claude Code extension */
   context.subscriptions.push(
     vscode.commands.registerCommand('backtrack.resumeSession', async (item: SessionTreeItem | { session: SessionMeta }) => {
       const meta = 'session' in item ? item.session : (item as SessionTreeItem).session;
       if (!meta) return;
 
-      const isWsl = process.platform === 'linux' && fs.existsSync('/mnt/c');
-      const cmd = isWsl
-        ? `cmd.exe /c "claude --resume ${meta.id}"`
-        : `claude --resume ${meta.id}`;
+      const choice = await vscode.window.showQuickPick(
+        [
+          { label: '$(terminal) Resume in Terminal', description: 'Opens claude --resume in a terminal tab', value: 'terminal' },
+          { label: '$(extensions) Resume in Claude Code', description: 'Opens session directly in the Claude Code VS Code extension', value: 'extension' },
+        ],
+        { title: `Resume: ${meta.title.slice(0, 60)}`, placeHolder: 'Choose how to resume this session' }
+      );
 
-      // On WSL, open a PowerShell terminal so claude.cmd is on PATH
-      let terminal = vscode.window.terminals.find((t) => t.name === 'Claude Code');
-      if (!terminal) {
-        const shellPath = isWsl ? 'powershell.exe' : undefined;
-        const cwd = isWsl ? `C:\\${meta.projectPath.replace(/^\/mnt\/c\//, '').replace(/\//g, '\\')}` : meta.projectPath;
-        terminal = vscode.window.createTerminal({ name: 'Claude Code', shellPath, cwd });
+      if (!choice) return;
+
+      const isWsl = process.platform === 'linux' && fs.existsSync('/mnt/c');
+
+      // Resolve a safe CWD — fall back to home dir if project path doesn't exist
+      function safeCwd(projectPath: string): string {
+        if (fs.existsSync(projectPath)) return projectPath;
+        const home = os.homedir();
+        return fs.existsSync(home) ? home : '.';
       }
-      terminal.show();
-      terminal.sendText(isWsl ? `claude --resume ${meta.id}` : cmd);
+
+      if (choice.value === 'terminal') {
+        const rawCwd = isWsl
+          ? `C:\\${meta.projectPath.replace(/^\/mnt\/c\//, '').replace(/\//g, '\\')}`
+          : meta.projectPath;
+        const cwd = safeCwd(isWsl ? meta.projectPath : rawCwd);
+
+        let terminal = vscode.window.terminals.find((t) => t.name === 'Claude Code');
+        if (!terminal) {
+          const shellPath = isWsl ? 'powershell.exe' : undefined;
+          terminal = vscode.window.createTerminal({
+            name: 'Claude Code',
+            shellPath,
+            cwd: isWsl ? `C:\\${cwd.replace(/^\/mnt\/c\//, '').replace(/\//g, '\\')}` : cwd,
+          });
+        }
+        terminal.show();
+        const cmd = isWsl
+          ? `claude --resume ${meta.id}`
+          : `claude --resume ${meta.id}`;
+        terminal.sendText(cmd);
+      } else {
+        // Open in Claude Code extension — uses `claude` CLI with no terminal shown
+        const cwd = safeCwd(meta.projectPath);
+        const terminal = vscode.window.createTerminal({
+          name: `Claude: ${meta.title.slice(0, 30)}`,
+          cwd,
+          isTransient: true,
+        });
+        terminal.show();
+        terminal.sendText(`claude --resume ${meta.id}`);
+      }
     })
   );
 
