@@ -54,7 +54,8 @@ Tracked upstream: [#34985](https://github.com/anthropics/claude-code/issues/3498
 - **Bookmarked** panel — pinned sessions that persist across restarts
 - **Full-text search** — searches titles, previews, and raw `.jsonl` file content
 - **Session viewer** — full conversation with code blocks, tool-use, collapsible thinking blocks
-- **Resume** — right-click any session → Resume in Terminal → runs `claude --resume <id>`
+- **Resume** — right-click any session → choose **Terminal** or **Claude Code Panel**
+- **Safe resume** — if the original project folder no longer exists, falls back to home directory (no crash)
 - **Export to Markdown** — save full conversation with metadata header
 - **Auto-refresh** — watches `~/.claude/projects/` for new sessions (debounced 2s)
 - **WSL auto-detection** — finds Windows `.claude` when running inside WSL
@@ -79,7 +80,8 @@ BACKTRACK
 | Action | Description |
 |---|---|
 | View Session Details | Open full conversation viewer |
-| Resume in Terminal | Run `claude --resume <id>` |
+| Resume in Terminal | Run `claude --resume <id>` in a terminal tab |
+| Resume in Claude Code Panel | Copy resume command to clipboard + focus Claude Code chat panel |
 | Export to Markdown | Save conversation as `.md` file |
 | Bookmark / Remove Bookmark | Pin/unpin the session |
 | Copy Session ID | Copy UUID to clipboard |
